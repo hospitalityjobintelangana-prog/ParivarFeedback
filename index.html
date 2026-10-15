@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parivar Cafe - Customer Feedback</title>
+<style>
+:root{--p:#7a3e1d;--a:#e8a33d;--bg:#fff8ee}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial,sans-serif;background:var(--bg);color:#2b1a0f;font-size:16px}
+header{background:var(--p);color:#fff;text-align:center;padding:18px 12px}header img{height:64px;border-radius:8px;display:block;margin:0 auto 6px}
+h1{margin:0;font-size:26px;letter-spacing:1px}h2{margin:4px 0 0;font-size:17px;color:var(--a)}header p{margin:6px 0 0;font-size:14px;opacity:.9}
+main{max-width:760px;margin:0 auto;padding:12px}.card{background:#fff;border-radius:12px;padding:14px;margin:12px 0;box-shadow:0 1px 5px #0002}
+label{display:block;font-weight:600;margin:8px 0 4px}input,select,textarea{width:100%;padding:12px;border:1px solid #c9b8a6;border-radius:8px;font-size:16px;background:#fff}
+textarea{min-height:70px}button{font-size:16px;border:0;border-radius:10px;padding:13px 16px;background:var(--p);color:#fff;cursor:pointer;min-height:46px}
+button.sec{background:#e9dccd;color:#3b1f0e}button.big{width:100%;background:var(--a);color:#2b1a0f;font-weight:700;font-size:18px;padding:16px}
+.rate{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.rate button{background:#f1e7da;color:#3b1f0e;padding:8px 2px;font-size:13px;line-height:1.2}
+.rate button b{display:block;font-size:20px}.rate button.on{color:#fff}.on.s5{background:#1b8a3a}.on.s4{background:#7bb32e}.on.s3{background:#e8a33d}.on.s2{background:#e8661d}.on.s1{background:#d11f1f}
+.warn{background:#fdeaea;border-left:4px solid #d11f1f;padding:8px;margin-top:8px;border-radius:6px;font-size:14px}.opt{background:#fff6e0;border-left:4px solid var(--a);padding:8px;margin-top:8px;border-radius:6px;font-size:14px}
+.err{color:#d11f1f;font-size:14px;margin-top:4px}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{flex:1}
+.tabs button.act{background:var(--a);color:#2b1a0f}.stat{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stat div{background:#f7efe3;border-radius:10px;padding:10px;text-align:center}.stat b{font-size:24px;display:block}
+.bar{background:#eee;border-radius:6px;height:16px;margin:2px 0 8px}.bar i{display:block;height:100%;background:var(--p);border-radius:6px}
+.fb.low{border:2px solid #d11f1f;background:#fff4f4}.chip{display:inline-block;background:#f1e7da;border-radius:12px;padding:2px 8px;margin:2px;font-size:13px}.chip.low{background:#d11f1f;color:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left}.hide{display:none}small{color:#6b5848}
+.ed{border:1px solid #e0d2c0;border-radius:8px;padding:8px;margin:6px 0}
+</style></head><body>
+<header id="hd"></header><main id="app"></main>
+<script>
+// ===== PASTE your Google Apps Script web-app URL here (see setup steps) =====
+const SCRIPT_URL='PASTE_APPS_SCRIPT_URL_HERE';
+const LIVE=SCRIPT_URL.startsWith('https://');
+const DEF={name:'PARIVAR CAFE',title:'CUSTOMER FEEDBACK FORM',sub:'Your Feedback Helps Us Serve You Better!',logo:'',p:'#7a3e1d',a:'#e8a33d',bg:'#fff8ee',
+fields:{name:true,mobile:true,order:true,type:true},lowMax:2,mid:{on:true,mand:false,text:'What could we do better?'},
+lowMsg:"We're sorry we didn't meet your expectations.\nPlease tell us what went wrong so we can improve.",
+thanks:"THANK YOU FOR YOUR FEEDBACK!\n\nWe appreciate your time and support.\nYour feedback helps Parivar Cafe serve you better.",
+cats:['Food Quality','Taste of Food','Food Temperature','Portion Size','Staff Behaviour','Speed of Service','Cleanliness and Hygiene','Value for Money','Overall Satisfaction'].map((l,i)=>({id:'c'+i,label:l,mand:true})),
+qs:[{id:'q1',label:'How was your overall experience?',type:'choice',opts:['Excellent','Very Good','Good','Poor','Very Poor'],mand:false},
+{id:'q2',label:'What did you like most about Parivar Cafe?',type:'text',opts:[],mand:false},
+{id:'q3',label:'What can we improve?',type:'text',opts:[],mand:false},
+{id:'q4',label:'Would you recommend Parivar Cafe to others?',type:'choice',opts:['Definitely','Maybe','No'],mand:false}]};
+const LBL={5:'Excellent',4:'Very Good',3:'Good',2:'Poor',1:'Very Poor'};
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const J=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+let C=Object.assign({},DEF,J('pf_cfg',{}));let PIN=sessionStorage.getItem('pf_pin')||'';let DATA=[];let S;let tab='dash';let FL={};
+async function api(o){const r=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(o)});return r.json()}
+function theme(){const s=document.documentElement.style;s.setProperty('--p',C.p);s.setProperty('--a',C.a);s.setProperty('--bg',C.bg);
+let n=0;$('#hd').innerHTML=(C.logo?`<img src="${C.logo}" id="lg">`:'')+`<h1 id="lg2">${esc(C.name)}</h1><h2>${esc(C.title)}</h2><p>${esc(C.sub)}</p>`;
+$('#hd').onclick=()=>{if(++n>=5){n=0;adminView()}}}
+const now=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`};
+function newS(){S={id:'F'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),r:{},c:{},a:{},info:{},busy:false}}
+// ===== customer form =====
+function formView(){theme();newS();const f=C.fields;
+$('#app').innerHTML=`<div class="card"><b>Customer Information</b><small> (optional)</small>
+${f.name?'<label>Customer Name</label><input id="i_name">':''}${f.mobile?'<label>Mobile Number</label><input id="i_mobile" type="tel">':''}
+${f.order?'<label>Order Number</label><input id="i_order">':''}<label>Date and Time</label><input id="i_ts" value="${now()}" readonly>
+${f.type?'<label>Feedback Type</label><select id="i_type"><option>Dine-in</option><option>Takeaway</option><option>Other</option></select>':''}</div>
+<div class="card"><b>Please rate us</b><div id="msg" class="err"></div>${C.cats.map(c=>`<div id="k_${c.id}" style="margin-top:14px"><label>${esc(c.label)}${c.mand?' *':''}</label>
+<div class="rate">${[5,4,3,2,1].map(v=>`<button data-c="${c.id}" data-v="${v}"><b>${v}★</b>${LBL[v]}</button>`).join('')}</div><div id="cm_${c.id}"></div></div>`).join('')}</div>
+<div class="card">${C.qs.map(q=>`<div style="margin-bottom:10px"><label>${esc(q.label)}${q.mand?' *':''}</label>${q.type==='choice'?
+`<div class="row">${q.opts.map(o=>`<button class="sec" data-q="${q.id}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>`:`<textarea data-t="${q.id}"></textarea>`}<div class="err" id="qe_${q.id}"></div></div>`).join('')}</div>
+<button class="big" id="sub">SUBMIT FEEDBACK</button><p style="text-align:center"><small>Staff? Tap the header 5 times for admin.</small></p>`;
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>rate(b.dataset.c,+b.dataset.v));
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{S.a[b.dataset.q]=b.dataset.o;document.querySelectorAll(`[data-q="${b.dataset.q}"]`).forEach(x=>{x.style.background=x===b?'var(--p)':'';x.style.color=x===b?'#fff':''})});
+document.querySelectorAll('[data-t]').forEach(t=>t.oninput=()=>S.a[t.dataset.t]=t.value);$('#sub').onclick=submit}
+function rate(id,v){S.r[id]=v;document.querySelectorAll(`[data-c="${id}"]`).forEach(b=>b.className=+b.dataset.v===v?'on s'+v:'');
+const cm=$('#cm_'+id),keep=S.c[id]||'';let h='';
+if(v<=C.lowMax)h=`<div class="warn">${esc(C.lowMsg).replace(/\n/g,'<br>')}</div><textarea data-cm="${id}" placeholder="Required - tell us what went wrong"></textarea><div class="err" id="ce_${id}"></div>`;
+else if(v===3&&C.mid.on)h=`<div class="opt">${esc(C.mid.text)}${C.mid.mand?' *':''}</div><textarea data-cm="${id}"></textarea><div class="err" id="ce_${id}"></div>`;
+else h=`<textarea data-cm="${id}" placeholder="Comment or suggestion (optional)"></textarea>`;
+cm.innerHTML=h;const t=cm.querySelector('textarea');t.value=keep;t.oninput=()=>S.c[id]=t.value}
+async function submit(){if(S.busy)return;document.querySelectorAll('.err').forEach(e=>e.textContent='');let bad=0,first=null;
+const fail=(id,m)=>{const e=$('#'+id);if(e){e.textContent=m;if(!first)first=e}bad++};
+C.cats.forEach(c=>{const v=S.r[c.id];if(!v){if(c.mand)fail('cm_'+c.id,'Please select a rating.');return}
+const t=(S.c[c.id]||'').trim();if(v<=C.lowMax&&!t)fail('ce_'+c.id,'Explanation required for a low rating.');
+else if(v===3&&C.mid.on&&C.mid.mand&&!t)fail('ce_'+c.id,'Please add a suggestion.')});
+C.qs.forEach(q=>{if(q.mand&&!(S.a[q.id]||'').trim())fail('qe_'+q.id,'This answer is required.')});
+if(bad){$('#msg').textContent='Please fix '+bad+' item(s) below.';(first||$('#msg')).scrollIntoView({block:'center'});return}
+const g=i=>$('#'+i)?$('#'+i).value.trim():'';
+const rec={id:S.id,ts:$('#i_ts').value,name:g('i_name'),mobile:g('i_mobile'),order:g('i_order'),type:g('i_type'),ratings:{},answers:{}};
+C.cats.forEach(c=>{if(S.r[c.id])rec.ratings[c.id]={label:c.label,score:S.r[c.id],comment:(S.c[c.id]||'').trim()}});
+C.qs.forEach(q=>{if(S.a[q.id])rec.answers[q.id]={label:q.label,value:S.a[q.id].trim()}});
+S.busy=true;$('#sub').disabled=true;$('#sub').textContent='Submitting...';
+const loc=J('pf_local',[]);if(!loc.some(x=>x.id===rec.id)){loc.push(rec);localStorage.setItem('pf_local',JSON.stringify(loc))}
+if(LIVE){try{const r=await api({action:'submit',record:rec});if(!r.ok)throw 0}catch(e){const q=J('pf_pending',[]);q.push(rec);localStorage.setItem('pf_pending',JSON.stringify(q))}}
+$('#app').innerHTML=`<div class="card" style="text-align:center;font-size:18px"><p>${esc(C.thanks).replace(/\n/g,'<br>')}</p><button class="sec" onclick="formView()">Give another feedback</button></div>`;scrollTo(0,0)}
+async function retry(){if(!LIVE)return;const q=J('pf_pending',[]);if(!q.length)return;const left=[];for(const r of q){try{const x=await api({action:'submit',record:r});if(!x.ok)throw 0}catch(e){left.push(r)}}localStorage.setItem('pf_pending',JSON.stringify(left))}
+// ===== admin =====
+function adminView(){theme();if(PIN)return load();$('#app').innerHTML=`<div class="card"><b>Admin Login</b><label>PIN</label><input id="pin" type="password" inputmode="numeric"><div class="err" id="le"></div><br><button onclick="login()">Login</button> <button class="sec" onclick="formView()">Back</button>${LIVE?'':'<p class="warn">Google Sheet not connected yet - local mode (default PIN 1234).</p>'}</div>`}
+async function login(){const p=$('#pin').value;try{if(LIVE){const r=await api({action:'login',pin:p});if(!r.ok)throw 0}else if(p!==(C.pin||'1234'))throw 0;PIN=p;sessionStorage.setItem('pf_pin',p);load()}catch(e){$('#le').textContent='Wrong PIN or no connection.'}}
+async function load(){$('#app').innerHTML='<div class="card">Loading...</div>';let rows=J('pf_local',[]).map(r=>Object.assign({status:'Pending',notes:''},r));
+if(LIVE){try{const r=await (await fetch(SCRIPT_URL+'?action=list&pin='+encodeURIComponent(PIN))).json();if(r.ok)rows=r.rows;else{PIN='';sessionStorage.removeItem('pf_pin');return adminView()}}catch(e){}}
+DATA=rows.sort((a,b)=>b.ts.localeCompare(a.ts));draw()}
+const rv=r=>Object.values(r.ratings||{});const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length):0;
+const ovr=r=>{const o=rv(r).find(x=>/overall/i.test(x.label));return o?o.score:avg(rv(r).map(x=>x.score))};
+function filt(){return DATA.filter(r=>(!FL.from||r.ts.slice(0,10)>=FL.from)&&(!FL.to||r.ts.slice(0,10)<=FL.to)&&(!FL.max||rv(r).some(x=>x.score<=+FL.max&&(!FL.cat||x.label===FL.cat)))&&(!FL.cat||rv(r).some(x=>x.label===FL.cat))&&(!FL.q||(r.order+' '+r.name+' '+r.mobile).toLowerCase().includes(FL.q.toLowerCase())))}
+function draw(){const T=[['dash','Dashboard'],['list','Feedback'],['rep','Reports'],['set','Settings']];
+$('#app').innerHTML=`<div class="tabs">${T.map(t=>`<button class="${tab===t[0]?'act':''}" onclick="tab='${t[0]}';draw()">${t[1]}</button>`).join('')}<button class="sec" onclick="logout()">Logout</button></div>
+${LIVE?'':'<div class="warn">Local mode: data shows only this device. Connect the Google Sheet (see setup steps).</div>'}<div id="tb"></div>`;({dash,list,rep,set}[tab])()}
+function logout(){PIN='';sessionStorage.removeItem('pf_pin');formView()}
+function dash(){const all=DATA.flatMap(rv).map(x=>x.score),cnt=v=>all.filter(x=>x===v).length,sat=DATA.filter(r=>ovr(r)>=4).length;
+const cs=C.cats.map(c=>[c.label,avg(DATA.map(r=>(rv(r).find(x=>x.label===c.label)||{}).score).filter(Boolean))]);
+$('#tb').innerHTML=`<div class="card"><div class="stat"><div><b>${DATA.length}</b>Total feedback</div><div><b>${avg(DATA.map(ovr).filter(Boolean)).toFixed(2)}</b>Avg overall rating</div>
+<div><b>${DATA.length?Math.round(sat*100/DATA.length):0}%</b>Satisfied (4-5)</div><div><b>${DATA.filter(r=>(r.status||'Pending')!=='Resolved'&&rv(r).some(x=>x.score<3)).length}</b>Open complaints</div></div></div>
+<div class="card"><b>Ratings count</b><br>${[5,4,3,2,1].map(v=>`<span class="chip ${v<3?'low':''}">${v}★: ${cnt(v)}</span>`).join('')}</div>
+<div class="card"><b>Average by category</b><br><br>${cs.map(c=>`${esc(c[0])} <b>${c[1].toFixed(2)}</b><div class="bar"><i style="width:${c[1]*20}%"></i></div>`).join('')}</div>`}
+function list(){const rs=filt();$('#tb').innerHTML=`<div class="card"><div class="row"><div><label>From</label><input type="date" id="f1" value="${FL.from||''}"></div><div><label>To</label><input type="date" id="f2" value="${FL.to||''}"></div></div>
+<div class="row"><div><label>Rating up to</label><select id="f3"><option value="">Any</option>${[1,2,3,4,5].map(v=>`<option ${FL.max==v?'selected':''}>${v}</option>`).join('')}</select></div>
+<div><label>Category</label><select id="f4"><option value="">All</option>${C.cats.map(c=>`<option ${FL.cat===c.label?'selected':''}>${esc(c.label)}</option>`).join('')}</select></div></div>
+<label>Search order no / name / mobile</label><input id="f5" value="${esc(FL.q||'')}"><br><br><div class="row"><button onclick="FL={from:f1.value,to:f2.value,max:f3.value,cat:f4.value,q:f5.value};list()">Apply filter</button><button class="sec" onclick="FL={};list()">Clear</button><button class="sec" onclick="csv()">Export CSV</button></div></div>
+<p><small>${rs.length} record(s)</small></p>${rs.map(r=>{const low=rv(r).some(x=>x.score<3);return `<div class="card fb ${low?'low':''}"><b>${esc(r.ts)}</b> ${esc(r.name)} ${esc(r.mobile)}<br><small>Order: ${esc(r.order||'-')} | ${esc(r.type||'-')}</small><br>
+${rv(r).map(x=>`<span class="chip ${x.score<3?'low':''}">${esc(x.label)}: ${x.score}</span>${x.comment?`<div style="margin:2px 0 6px"><small>&rarr; ${esc(x.comment)}</small></div>`:''}`).join('')}
+${Object.values(r.answers||{}).map(x=>`<div><small><b>${esc(x.label)}</b> ${esc(x.value)}</small></div>`).join('')}
+<div class="row" style="margin-top:8px"><select id="st_${r.id}">${['Pending','In Progress','Resolved'].map(s=>`<option ${(r.status||'Pending')===s?'selected':''}>${s}</option>`).join('')}</select>
+<button onclick="upd('${r.id}')">Save</button></div><textarea id="nt_${r.id}" placeholder="Administrator action notes">${esc(r.notes)}</textarea></div>`}).join('')}`}
+async function upd(id){const r=DATA.find(x=>x.id===id);r.status=$('#st_'+id).value;r.notes=$('#nt_'+id).value;
+const loc=J('pf_local',[]);const l=loc.find(x=>x.id===id);if(l){l.status=r.status;l.notes=r.notes;localStorage.setItem('pf_local',JSON.stringify(loc))}
+if(LIVE)try{await api({action:'update',pin:PIN,id,status:r.status,notes:r.notes})}catch(e){alert('Could not reach Google Sheet');return}alert('Saved')}
+function rep(){const d={};DATA.forEach(r=>{const k=r.ts.slice(0,10);(d[k]=d[k]||[]).push(ovr(r))});
+$('#tb').innerHTML=`<div class="card"><b>Date-wise report</b><table><tr><th>Date</th><th>Count</th><th>Avg</th></tr>${Object.keys(d).sort().reverse().map(k=>`<tr><td>${k}</td><td>${d[k].length}</td><td>${avg(d[k]).toFixed(2)}</td></tr>`).join('')}</table></div>
+<div class="card"><b>Category-wise report</b><table><tr><th>Category</th><th>Avg</th><th>Low (1-2)</th></tr>${C.cats.map(c=>{const s=DATA.flatMap(rv).filter(x=>x.label===c.label).map(x=>x.score);return `<tr><td>${esc(c.label)}</td><td>${avg(s).toFixed(2)}</td><td>${s.filter(x=>x<3).length}</td></tr>`}).join('')}</table></div>
+<div class="card"><button onclick="csv()">Export CSV (Excel)</button> <button class="sec" onclick="backup()">Backup JSON</button></div>`}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+function csv(){const labs=[...new Set(DATA.flatMap(rv).map(x=>x.label))],qs=[...new Set(DATA.flatMap(r=>Object.values(r.answers||{}).map(x=>x.label)))];
+const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const H=['Date','Name','Mobile','Order','Type',...labs,...labs.map(l=>l+' - Comment'),...qs,'Status','Notes'];
+const rows=filt().map(r=>{const m={};rv(r).forEach(x=>m[x.label]=x);const a={};Object.values(r.answers||{}).forEach(x=>a[x.label]=x.value);
+return [r.ts,r.name,r.mobile,r.order,r.type,...labs.map(l=>m[l]?.score),...labs.map(l=>m[l]?.comment),...qs.map(l=>a[l]),r.status,r.notes].map(q).join(',')});
+dl('parivar-feedback.csv','\ufeff'+[H.map(q).join(','),...rows].join('\n'),'text/csv')}
+function backup(){dl('parivar-backup.json',JSON.stringify({config:C,data:DATA}),'application/json')}
+// ===== settings =====
+function set(){const mv=(k,i,d)=>{const a=C[k];const j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];set()};window.mv=mv;
+const lst=(k,fn)=>C[k].map((x,i)=>`<div class="ed">${fn(x,i)}<div class="row"><button class="sec" onclick="mv('${k}',${i},-1)">&uarr;</button><button class="sec" onclick="mv('${k}',${i},1)">&darr;</button><button class="sec" onclick="C.${k}.splice(${i},1);set()">Delete</button></div></div>`).join('');
+$('#tb').innerHTML=`<div class="card"><b>Branding</b><label>Outlet name</label><input data-s="name" value="${esc(C.name)}"><label>Form title</label><input data-s="title" value="${esc(C.title)}"><label>Subtitle</label><input data-s="sub" value="${esc(C.sub)}">
+<label>Logo (small image)</label><input type="file" accept="image/*" id="logo"><div class="row"><div><label>Main colour</label><input type="color" data-s="p" value="${C.p}"></div><div><label>Accent</label><input type="color" data-s="a" value="${C.a}"></div><div><label>Background</label><input type="color" data-s="bg" value="${C.bg}"></div></div></div>
+<div class="card"><b>Customer fields</b>${Object.keys(C.fields).map(k=>`<label><input type="checkbox" style="width:auto" data-f="${k}" ${C.fields[k]?'checked':''}> ${k}</label>`).join('')}</div>
+<div class="card"><b>Rating categories</b>${lst('cats',(c,i)=>`<input data-ci="${i}" value="${esc(c.label)}"><label><input type="checkbox" style="width:auto" data-cm="${i}" ${c.mand?'checked':''}> Mandatory</label>`)}<button onclick="C.cats.push({id:'c'+Date.now(),label:'New category',mand:true});set()">+ Add category</button></div>
+<div class="card"><b>Questions</b>${lst('qs',(q,i)=>`<input data-ql="${i}" value="${esc(q.label)}"><select data-qt="${i}"><option value="text" ${q.type==='text'?'selected':''}>Text</option><option value="choice" ${q.type==='choice'?'selected':''}>Choice</option></select><input data-qo="${i}" placeholder="Options, comma separated" value="${esc(q.opts.join(','))}"><label><input type="checkbox" style="width:auto" data-qm="${i}" ${q.mand?'checked':''}> Mandatory</label>`)}<button onclick="C.qs.push({id:'q'+Date.now(),label:'New question',type:'text',opts:[],mand:false});set()">+ Add question</button></div>
+<div class="card"><b>Low-rating rules</b><label>Comment compulsory for ratings up to</label><select data-s="lowMax"><option ${C.lowMax==1?'selected':''}>1</option><option ${C.lowMax==2?'selected':''}>2</option></select>
+<label>Low-rating message</label><textarea data-s="lowMsg">${esc(C.lowMsg)}</textarea><label><input type="checkbox" style="width:auto" data-m="on" ${C.mid.on?'checked':''}> Ask suggestion for rating 3</label><lab
